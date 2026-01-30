@@ -1,3 +1,4 @@
 *.docx
 **/__pycache__/
-TASKS.md
+.env
+**/*.docx

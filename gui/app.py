@@ -7,7 +7,7 @@ import webbrowser
 
 # --- Import Logic ---
 # Ensure you have these files in your project structure
-from utils.file_reader import read_codebase, read_template
+from utils.file_reader import read_codebase, read_dox_pdf
 from utils.doc_writer import save_to_docx
 import ai.client as ai
 
@@ -203,6 +203,7 @@ class DocGeneratorApp:
         self.loaded_code = ""
         self.project_path = ""
         self.chat_history = ""
+        self.template_md = ""
 
         self._setup_styles()
         self._build_ui()
@@ -228,17 +229,17 @@ class DocGeneratorApp:
         self.notebook.pack(fill="both", expand=True)
 
         self.tab_setup = ttk.Frame(self.notebook)
-        self.tab_docs = ttk.Frame(self.notebook)
+        self.tab_template_editor = ttk.Frame(self.notebook)
         self.tab_chat = ttk.Frame(self.notebook)
         self.tab_refactor = ttk.Frame(self.notebook)
 
         self.notebook.add(self.tab_setup, text="Project Setup")
-        self.notebook.add(self.tab_docs, text="Documentation")
+        self.notebook.add(self.tab_template_editor, text="Template Editor")
         self.notebook.add(self.tab_chat, text="AI Assistant")
         self.notebook.add(self.tab_refactor, text="Code Refactor")
 
         self._build_tab_setup()
-        self._build_tab_docs()
+        self._build_tab_template_editor()
         self._build_tab_chat()
         self._build_tab_refactor()
 
@@ -287,42 +288,63 @@ class DocGeneratorApp:
             except Exception as e:
                 self.status_lbl.config(text=f"Error: {e}", foreground="red")
 
-    # ================= TAB 2: DOCUMENTATION =================
-    def _build_tab_docs(self):
-        frame = ttk.Frame(self.tab_docs)
+    # ================= TAB 2: TEMPLATE EDITOR =================
+    def _build_tab_template_editor(self):
+        frame = ttk.Frame(self.tab_template_editor)
         frame.pack(fill="both", expand=True, padx=20, pady=20)
 
         paned = tk.PanedWindow(frame, orient=tk.HORIZONTAL, bg=BG_COLOR, sashwidth=4)
         paned.pack(fill="both", expand=True)
 
+        # Left Panel: Configuration
         left_panel = ttk.Frame(paned)
         paned.add(left_panel, width=350)
 
         ttk.Label(left_panel, text="Configuration", style="Header.TLabel").pack(anchor="w", pady=(0, 20))
         ttk.Label(left_panel, text="Template Source:", style="SubHeader.TLabel").pack(anchor="w", pady=(10, 5))
         self.template_var = tk.StringVar()
-        tk.Entry(left_panel, textvariable=self.template_var, bg=INPUT_BG, fg="white", relief="flat").pack(fill="x",
-                                                                                                          ipady=5)
+        tk.Entry(left_panel, textvariable=self.template_var, bg=INPUT_BG, fg="white", relief="flat").pack(fill="x", ipady=5)
         ttk.Button(left_panel, text="Choose File (Optional)", command=self.select_template).pack(anchor="w", pady=5)
 
         ttk.Label(left_panel, text="Specific Instructions:", style="SubHeader.TLabel").pack(anchor="w", pady=(20, 5))
         self.doc_instr = tk.Text(left_panel, height=8, bg=INPUT_BG, fg="white", relief="flat", font=("Segoe UI", 10))
         self.doc_instr.pack(fill="x", pady=5)
 
-        ttk.Button(left_panel, text="GENERATE DOCUMENTATION", style="Green.TButton", command=self.run_doc_gen).pack(
-            fill="x", pady=30, ipady=8)
+        ttk.Button(left_panel, text="GENERATE TEMPLATE", style="Green.TButton",
+                   command=self.generate_template_handler).pack(fill="x", pady=20, ipady=8)
 
+        # State indicator
+        self.template_status_var = tk.StringVar(value="Status: No template generated")
+        ttk.Label(left_panel, textvariable=self.template_status_var, foreground="#888").pack(anchor="w", pady=(10, 5))
+
+        self.confirm_btn = ttk.Button(left_panel, text="CONFIRM & GENERATE DOCS",
+                                      command=self.confirm_and_generate_docs, state="disabled")
+        self.confirm_btn.pack(fill="x", pady=(10, 30), ipady=8)
+
+        # Right Panel: Template Editor
         right_panel = ttk.Frame(paned)
         paned.add(right_panel)
-        ttk.Label(right_panel, text="Activity Log", style="SubHeader.TLabel").pack(anchor="w", padx=20)
+        ttk.Label(right_panel, text="Template Editor", style="SubHeader.TLabel").pack(anchor="w", padx=20)
 
-        # Manual Scrollbar for Logs
+        editor_container = ttk.Frame(right_panel)
+        editor_container.pack(fill="both", expand=True, padx=(20, 0), pady=10)
+
+        editor_scroll = ttk.Scrollbar(editor_container)
+        self.template_editor = tk.Text(editor_container, bg=INPUT_BG, fg="white", font=("Consolas", 11),
+                                       relief="flat", yscrollcommand=editor_scroll.set, wrap="word")
+        editor_scroll.config(command=self.template_editor.yview)
+
+        editor_scroll.pack(side="right", fill="y")
+        self.template_editor.pack(side="left", fill="both", expand=True)
+
+        # Activity Log at bottom
+        ttk.Label(right_panel, text="Activity Log", style="SubHeader.TLabel").pack(anchor="w", padx=20, pady=(10, 0))
         log_container = ttk.Frame(right_panel)
-        log_container.pack(fill="both", expand=True, padx=(20, 0), pady=10)
+        log_container.pack(fill="both", expand=False, padx=(20, 0), pady=10)
 
         log_scroll = ttk.Scrollbar(log_container)
         self.doc_log = tk.Text(log_container, bg=CHAT_BG, fg="#d4d4d4", font=("Consolas", 10),
-                               relief="flat", yscrollcommand=log_scroll.set)
+                               relief="flat", yscrollcommand=log_scroll.set, height=6)
         log_scroll.config(command=self.doc_log.yview)
 
         log_scroll.pack(side="right", fill="y")
@@ -332,19 +354,56 @@ class DocGeneratorApp:
         f = filedialog.askopenfilename(filetypes=[("Docs", "*.docx *.pdf")])
         if f: self.template_var.set(f)
 
-    def run_doc_gen(self):
+    def generate_template_handler(self):
         if not self.loaded_code:
             messagebox.showerror("Error", "No project loaded.")
             return
 
         def task():
             self.doc_log.insert(tk.END, "[INFO] Reading template...\n")
-            template_path = self.template_var.get()
-            template_content = read_template(template_path) if template_path else None
+            example_path = self.template_var.get()
+            example_content = read_dox_pdf(example_path) if example_path else None
             self.doc_log.insert(tk.END, "[INFO] Sending to AI Engine...\n")
-            response = ai.generate_docs(self.loaded_code, template_content, self.doc_instr.get("1.0", tk.END))
+
+            template_md = ai.generate_template(example_content, self.doc_instr.get("1.0", tk.END))
+
+            # Update UI with generated template
+            self.root.after(0, lambda: self._update_template_editor(template_md))
+
+        threading.Thread(target=task).start()
+
+    def _update_template_editor(self, template_md):
+        self.template_md = template_md
+        self.template_editor.delete("1.0", tk.END)
+        self.template_editor.insert(tk.END, template_md)
+        self.template_status_var.set("Status: Template ready for editing")
+        self.confirm_btn.config(state="normal")
+
+        # Save template to file
+        self.doc_log.insert(tk.END, "[INFO] Formatting Word Document...\n")
+        save_to_docx(template_md, "Template.docx")
+        self.doc_log.insert(tk.END, "[SUCCESS] Saved to 'Template.docx'\n")
+        self.doc_log.see(tk.END)
+
+    def confirm_and_generate_docs(self):
+        if not self.loaded_code:
+            messagebox.showerror("Error", "No project loaded.")
+            return
+
+        # Get the edited template from the editor
+        edited_template = self.template_editor.get("1.0", tk.END)
+
+        def task():
+            # Save the edited template to Template.docx (overwrite original)
+            self.doc_log.insert(tk.END, "[INFO] Saving edited template to 'Template.docx'...\n")
+            save_to_docx(edited_template, "Template.docx")
+            self.doc_log.insert(tk.END, "[SUCCESS] Edited template saved to 'Template.docx'\n")
+
+            # Generate final documentation from edited template
+            self.doc_log.insert(tk.END, "[INFO] Generating final documentation from edited template...\n")
+            final_doc_md = ai.generate_docs(edited_template, self.loaded_code, self.doc_instr.get("1.0", tk.END))
             self.doc_log.insert(tk.END, "[INFO] Formatting Word Document...\n")
-            save_to_docx(response, "Project_Docs.docx")
+            save_to_docx(final_doc_md, "Project_Docs.docx")
             self.doc_log.insert(tk.END, "[SUCCESS] Saved to 'Project_Docs.docx'\n")
             self.doc_log.see(tk.END)
 

@@ -7,7 +7,7 @@ from docx import Document  # For handling .docx files
 from pypdf import PdfReader  # For handling .pdf files
 
 # --- CONFIGURATION ---
-openai.api_key = "KlPuOX3MvbmNVUYAGjWaEnZYOreipYZyRigY4oTXIYM"
+openai.api_key =
 openai.api_base = "https://api.poe.com/v1"
 MODEL_NAME = "gemini-3-pro"
 
@@ -89,7 +89,7 @@ class DocGeneratorApp:
 
             # 2. Read Template
             self.log(f"Reading template: {os.path.basename(template_file)}")
-            template_text = self.read_template_file(template_file)
+            template_text = self.read_dox_pdf_file(template_file)
 
             if not template_text:
                 self.log("Error: Could not read text from template.")
@@ -128,7 +128,7 @@ class DocGeneratorApp:
                         pass
         return code_content
 
-    def read_template_file(self, file_path):
+    def read_dox_pdf_file(self, file_path):
         text = ""
         try:
             if file_path.endswith('.docx'):
