@@ -1,9 +1,14 @@
 import openai
 import re
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configuration
-openai.api_key = ""
-openai.api_base = "https://open.bigmodel.cn/api/coding/paas/v4"
+openai.api_key = os.getenv("OPENAI_API_KEY", "")
+openai.api_base = os.getenv("OPENAI_API_BASE", "https://open.bigmodel.cn/api/coding/paas/v4")
 MODEL_NAME = "GLM-4.7"
 
 
