@@ -34,7 +34,7 @@ def read_codebase(folder_path, file_pattern="*"):
     return code_content
 
 
-def read_template(file_path):
+def read_dox_pdf(file_path):
     """Reads text from .docx or .pdf templates."""
     text = ""
     try:

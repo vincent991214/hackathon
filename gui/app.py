@@ -7,7 +7,7 @@ import webbrowser
 
 # --- Import Logic ---
 # Ensure you have these files in your project structure
-from utils.file_reader import read_codebase, read_template
+from utils.file_reader import read_codebase, read_dox_pdf
 from utils.doc_writer import save_to_docx
 import ai.client as ai
 
@@ -336,15 +336,20 @@ class DocGeneratorApp:
         if not self.loaded_code:
             messagebox.showerror("Error", "No project loaded.")
             return
-
+        # TODO: extract the project name and use it as the part of template and final doc titles
         def task():
             self.doc_log.insert(tk.END, "[INFO] Reading template...\n")
-            template_path = self.template_var.get()
-            template_content = read_template(template_path) if template_path else None
+            example_path = self.template_var.get()
+            example_content = read_dox_pdf(example_path) if example_path else None
             self.doc_log.insert(tk.END, "[INFO] Sending to AI Engine...\n")
-            response = ai.generate_docs(self.loaded_code, template_content, self.doc_instr.get("1.0", tk.END))
+            template_md = ai.generate_template(example_content, self.doc_instr.get("1.0", tk.END))
             self.doc_log.insert(tk.END, "[INFO] Formatting Word Document...\n")
-            save_to_docx(response, "Project_Docs.docx")
+            save_to_docx(template_md, "Template.docx")
+            self.doc_log.insert(tk.END, "[SUCCESS] Saved to 'Template.docx'\n")
+            self.doc_log.insert(tk.END, "[INFO] Generating final documentation...\n")
+            final_doc_md = ai.generate_docs(template_md,self.loaded_code, self.doc_instr.get("1.0", tk.END))
+            self.doc_log.insert(tk.END, "[INFO] Formatting Word Document...\n")
+            save_to_docx(final_doc_md, "Project_Docs.docx")
             self.doc_log.insert(tk.END, "[SUCCESS] Saved to 'Project_Docs.docx'\n")
             self.doc_log.see(tk.END)
 
