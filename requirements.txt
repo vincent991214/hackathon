@@ -1,0 +1,3 @@
+python-docx
+pypdf
+openai==0.28
