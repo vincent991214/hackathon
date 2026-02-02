@@ -107,7 +107,7 @@ None
 
 ---
 
-## [ ] TASK 3: Upload DOCX Template to Editor
+## [x] TASK 3: Upload DOCX Template to Editor
 **Priority**: P2 | **Complexity**: L2 | **Estimated Files**: 1
 
 ### Description
@@ -144,12 +144,12 @@ Option B: [Project Setup] → [Template Editor] → [Generate Template] → [Rev
 ```
 
 ### Acceptance Criteria
-- [ ] "Upload Template (.docx)" button added to left panel
-- [ ] File dialog filters for .docx files only
-- [ ] Uploaded content displays in editable text area
-- [ ] "Confirm & Generate Docs" button is enabled after upload
-- [ ] Status message confirms successful upload with filename
-- [ ] Existing `read_dox_pdf()` utility is reused (no new dependencies)
+- [x] "Upload Template (.docx)" button added to left panel
+- [x] File dialog filters for .docx files only
+- [x] Uploaded content displays in editable text area
+- [x] "Confirm & Generate Docs" button is enabled after upload
+- [x] Status message confirms successful upload with filename
+- [x] Existing `read_dox_pdf()` utility is reused (no new dependencies)
 
 ### Dependencies
 TASK 2 must be completed first (Template Editor tab must exist)
@@ -162,8 +162,48 @@ TASK 2 must be completed first (Template Editor tab must exist)
 | 2025-01-30 | Initial task creation | Joy |
 
 
-## [ ] TASK 4: Optimize file names & locations to store these files
-  1. Extract the project name from the path of project(codebase)
-  2. Generated Template file name: Template_project_name_timestamp.docx, timestamp is in the format of YYYYMMDDHHMMSS. Saved into ./template
-  3. Generated project file_name: project_name_timestamp.docx, timestamp is in the format of YYYYMMDDHHMMSS. Saved into ./final_docx
+## [x] TASK 4: Optimize file names & locations to store these files
+**Priority**: P1 | **Complexity**: L2 | **Estimated Files**: 1
+
+### Description
+Optimize file naming and storage locations for generated documents. Extract project name from codebase path and use timestamps for unique file identification.
+
+### Requirements
+1. **Extract Project Name** (`gui/app.py`):
+   - Create helper method `_extract_project_name()` to extract project name from codebase path
+   - Use the last folder name from the selected project path as the project name
+
+2. **Generate Timestamp** (`gui/app.py`):
+   - Create helper method `_get_timestamp()` for YYYYMMDDHHMMSS format
+   - Use Python's `datetime` module
+
+3. **Directory Management** (`gui/app.py`):
+   - Create helper method `_ensure_directories()` to create output directories if they don't exist
+   - Create `./template` directory for template files
+   - Create `./final_docx` directory for final documentation
+
+4. **File Naming Convention** (`gui/app.py`):
+   - Template files: `Template_project_name_timestamp.docx` saved to `./template`
+   - Final docs: `project_name_timestamp.docx` saved to `./final_docx`
+   - Create helper methods `_get_template_filename()` and `_get_final_docx_filename()`
+   - Clean project name for filename (replace invalid characters with underscore)
+
+5. **Update Existing Methods** (`gui/app.py`):
+   - Update `_update_template_editor()` to use new file naming
+   - Update `confirm_and_generate_docs()` to use new file naming
+
+### Acceptance Criteria
+- [x] Project name is extracted from codebase path
+- [x] Timestamp format is YYYYMMDDHHMMSS
+- [x] Template files saved to `./template` directory with name `Template_project_name_timestamp.docx`
+- [x] Final docx files saved to `./final_docx` directory with name `project_name_timestamp.docx`
+- [x] Directories are created automatically if they don't exist
+- [x] Project names are sanitized for filename usage
+- [x] Existing generation methods use new naming convention
+
+### Dependencies
+TASK 2 must be completed first (Template Editor must exist)
+
+## Task 5: remove the learning cost of UI for users, i.e., make UI understandable without any explaination
+1. Make UI more understandble and prettier, line 304 - line 318 @app.py 
   

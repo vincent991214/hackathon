@@ -4,6 +4,7 @@ import threading
 import os
 import re
 import webbrowser
+from datetime import datetime
 
 # --- Import Logic ---
 # Ensure you have these files in your project structure
@@ -300,11 +301,14 @@ class DocGeneratorApp:
         left_panel = ttk.Frame(paned)
         paned.add(left_panel, width=350)
 
-        ttk.Label(left_panel, text="Configuration", style="Header.TLabel").pack(anchor="w", pady=(0, 20))
-        ttk.Label(left_panel, text="Template Source:", style="SubHeader.TLabel").pack(anchor="w", pady=(10, 5))
+        # ttk.Label(left_panel, text="Configuration", style="Header.TLabel").pack(anchor="w", pady=(0, 20))
+        ttk.Label(left_panel, text="Extract the template from:", style="SubHeader.TLabel").pack(anchor="w", pady=(10, 5))
         self.template_var = tk.StringVar()
         tk.Entry(left_panel, textvariable=self.template_var, bg=INPUT_BG, fg="white", relief="flat").pack(fill="x", ipady=5)
-        ttk.Button(left_panel, text="Choose File (Optional)", command=self.select_template).pack(anchor="w", pady=5)
+        ttk.Button(left_panel, text="Example Document", command=self.select_template).pack(anchor="w", pady=5)
+
+        ttk.Label(left_panel, text="OR", style="SubHeader.TLabel").pack(anchor="w", pady=(10, 5))
+        ttk.Button(left_panel, text="Upload Template (.docx)", command=self.upload_template_to_editor).pack(anchor="w", pady=5)
 
         ttk.Label(left_panel, text="Specific Instructions:", style="SubHeader.TLabel").pack(anchor="w", pady=(20, 5))
         self.doc_instr = tk.Text(left_panel, height=8, bg=INPUT_BG, fg="white", relief="flat", font=("Segoe UI", 10))
@@ -354,6 +358,72 @@ class DocGeneratorApp:
         f = filedialog.askopenfilename(filetypes=[("Docs", "*.docx *.pdf")])
         if f: self.template_var.set(f)
 
+    # ================= TASK 3: Upload Template to Editor =================
+    def upload_template_to_editor(self):
+        """Upload a .docx template file directly to the editor, bypassing AI generation."""
+        f = filedialog.askopenfilename(
+            title="Select Template File",
+            filetypes=[("Word Documents", "*.docx")]
+        )
+        if not f:
+            return
+
+        try:
+            # Read the uploaded file content
+            content = read_dox_pdf(f)
+            if content is None:
+                messagebox.showerror("Error", "Failed to read the template file.")
+                return
+
+            # Display content in the editor
+            self.template_editor.delete("1.0", tk.END)
+            self.template_editor.insert(tk.END, content)
+            self.template_md = content
+
+            # Update status and enable confirm button
+            filename = os.path.basename(f)
+            self.template_status_var.set(f"Status: Template loaded from {filename}")
+            self.confirm_btn.config(state="normal")
+
+            self.doc_log.insert(tk.END, f"[INFO] Template loaded from {filename}\n")
+            self.doc_log.see(tk.END)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to upload template: {e}")
+
+    # ================= TASK 4: Helper Methods for File Naming =================
+    def _extract_project_name(self):
+        """Extract project name from the project path."""
+        if not self.project_path:
+            return "unnamed_project"
+        # Get the last folder name from the path
+        return os.path.basename(os.path.normpath(self.project_path))
+
+    def _get_timestamp(self):
+        """Generate timestamp in YYYYMMDDHHMMSS format."""
+        return datetime.now().strftime("%Y%m%d%H%M%S")
+
+    def _ensure_directories(self):
+        """Create output directories if they don't exist."""
+        os.makedirs("./template", exist_ok=True)
+        os.makedirs("./final_docx", exist_ok=True)
+
+    def _get_template_filename(self):
+        """Generate template filename with project name and timestamp."""
+        project_name = self._extract_project_name()
+        timestamp = self._get_timestamp()
+        # Clean project name for filename
+        project_name = re.sub(r'[^\w\-]', '_', project_name)
+        return f"./template/Template_{project_name}_{timestamp}.docx"
+
+    def _get_final_docx_filename(self):
+        """Generate final docx filename with project name and timestamp."""
+        project_name = self._extract_project_name()
+        timestamp = self._get_timestamp()
+        # Clean project name for filename
+        project_name = re.sub(r'[^\w\-]', '_', project_name)
+        return f"./final_docx/{project_name}_{timestamp}.docx"
+
     def generate_template_handler(self):
         if not self.loaded_code:
             messagebox.showerror("Error", "No project loaded.")
@@ -378,11 +448,6 @@ class DocGeneratorApp:
         self.template_editor.insert(tk.END, template_md)
         self.template_status_var.set("Status: Template ready for editing")
         self.confirm_btn.config(state="normal")
-
-        # Save template to file
-        self.doc_log.insert(tk.END, "[INFO] Formatting Word Document...\n")
-        save_to_docx(template_md, "Template.docx")
-        self.doc_log.insert(tk.END, "[SUCCESS] Saved to 'Template.docx'\n")
         self.doc_log.see(tk.END)
 
     def confirm_and_generate_docs(self):
@@ -394,17 +459,22 @@ class DocGeneratorApp:
         edited_template = self.template_editor.get("1.0", tk.END)
 
         def task():
-            # Save the edited template to Template.docx (overwrite original)
-            self.doc_log.insert(tk.END, "[INFO] Saving edited template to 'Template.docx'...\n")
-            save_to_docx(edited_template, "Template.docx")
-            self.doc_log.insert(tk.END, "[SUCCESS] Edited template saved to 'Template.docx'\n")
+            # TASK 4: Ensure directories exist and generate filenames
+            self._ensure_directories()
+            template_filename = self._get_template_filename()
+            final_docx_filename = self._get_final_docx_filename()
+
+            # Save the edited template with new naming convention
+            self.doc_log.insert(tk.END, f"[INFO] Saving edited template to '{template_filename}'...\n")
+            save_to_docx(edited_template, template_filename)
+            self.doc_log.insert(tk.END, f"[SUCCESS] Edited template saved to '{template_filename}'\n")
 
             # Generate final documentation from edited template
             self.doc_log.insert(tk.END, "[INFO] Generating final documentation from edited template...\n")
             final_doc_md = ai.generate_docs(edited_template, self.loaded_code, self.doc_instr.get("1.0", tk.END))
             self.doc_log.insert(tk.END, "[INFO] Formatting Word Document...\n")
-            save_to_docx(final_doc_md, "Project_Docs.docx")
-            self.doc_log.insert(tk.END, "[SUCCESS] Saved to 'Project_Docs.docx'\n")
+            save_to_docx(final_doc_md, final_docx_filename)
+            self.doc_log.insert(tk.END, f"[SUCCESS] Saved to '{final_docx_filename}'\n")
             self.doc_log.see(tk.END)
 
         threading.Thread(target=task).start()
