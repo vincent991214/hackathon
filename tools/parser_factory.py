@@ -149,7 +149,6 @@ class SmartFileParser(CodeParser):
         # Check for project documentation files
         has_readme = (path / "README.md").exists() or (path / "readme.md").exists()
         has_claude_md = (path / "CLAUDE.md").exists() or (path / "claude.md").exists()
-
         return ProjectAnalysis(
             parser_type="smart_file_reader",
             project_info=None,

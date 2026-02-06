@@ -275,6 +275,8 @@ def generate_docs(template_md, project_analysis, instructions=""):
         code_context = "# Java AST parsing not yet implemented\n"
     else:
         code_context = _format_file_contents(project_analysis.files)
+    
+    print(code_context)
 
     # Build project documentation section
     project_docs_section = ""
@@ -295,14 +297,14 @@ Task: Using the provided template structure and codebase analysis, generate comp
 TEMPLATE STRUCTURE:
 {template_md}
 
-CODEBASE ANALYSIS ({project_analysis.parser_type}):
-Parser: {project_analysis.parser_type}
-Total Files: {project_analysis.total_files}
-Total Lines: {project_analysis.total_lines}
-Metadata: {project_analysis.metadata}
+README.md and CLAUDE.md:
+{project_docs_section}
+
+CODEBASE:
 
 {code_context}
-{project_docs_section}ADDITIONAL INSTRUCTIONS:
+
+ADDITIONAL INSTRUCTIONS:
 {instructions}
  
 IMPORTANT FORMATTING RULES:
@@ -310,11 +312,6 @@ IMPORTANT FORMATTING RULES:
 2. Use Markdown tables for lists of components or parameters.
 3. Do NOT use code blocks for normal text.
 4. Ensure clarity and conciseness in explanations.
-
-PROJECT CONTEXT GUIDANCE:
-- If CLAUDE.md is provided above, follow any specific project conventions mentioned
-- If README.md is provided, incorporate any architectural overview or setup instructions
-- Maintain consistency with the project's existing documentation style
 
 Output ONLY the documentation content.
 """
