@@ -16,11 +16,11 @@ from gui.common import (
     SIDEBAR_COLOR, RichTextRenderer
 )
 
-# --- Import EJB Tab Mixin ---
-from gui.ejb_app import EJBTabMixin
+# # --- Import EJB Tab Mixin ---
+# from gui.ejb_app import EJBTabMixin
 
 
-class DocGeneratorApp(EJBTabMixin):
+class DocGeneratorApp():#EJBTabMixin):
     def __init__(self, root):
         self.root = root
         self.root.title("DevMate AI - Enterprise Edition")
@@ -33,7 +33,7 @@ class DocGeneratorApp(EJBTabMixin):
         self.template_md = ""
 
         # Initialize EJB state (from mixin)
-        self._init_ejb_state()
+        # self._init_ejb_state()
 
         self._setup_styles()
         self._build_ui()
@@ -62,19 +62,18 @@ class DocGeneratorApp(EJBTabMixin):
         self.tab_template_editor = ttk.Frame(self.notebook)
         self.tab_chat = ttk.Frame(self.notebook)
         self.tab_refactor = ttk.Frame(self.notebook)
-        self.tab_ejb = ttk.Frame(self.notebook)
 
         self.notebook.add(self.tab_setup, text="Project Setup")
         self.notebook.add(self.tab_template_editor, text="Template Editor")
         self.notebook.add(self.tab_chat, text="AI Assistant")
         self.notebook.add(self.tab_refactor, text="Code Refactor")
-        self.notebook.add(self.tab_ejb, text="EJB Analysis")
+        # self.notebook.add(self.tab_ejb, text="EJB Analysis")
 
         self._build_tab_setup()
         self._build_tab_template_editor()
         self._build_tab_chat()
         self._build_tab_refactor()
-        self._build_tab_ejb()  # Built from mixin
+        # self._build_tab_ejb()  # Built from mixin
 
     # ================= TAB 1: SETUP =================
     def _build_tab_setup(self):
