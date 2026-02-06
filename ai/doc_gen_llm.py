@@ -1,6 +1,8 @@
 import openai
 import re
 import os
+from pathlib import Path
+from typing import Optional, Tuple, List
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -40,6 +42,101 @@ def _send_request(prompt):
         return _clean_response(raw_content)
     except Exception as e:
         return f"AI Error: {str(e)}"
+
+
+def _read_project_docs(project_path: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Read README.md and CLAUDE.md files from the project.
+
+    Args:
+        project_path: Path to the project directory
+
+    Returns:
+        Tuple of (readme_content, claude_md_content) - None if file not found
+    """
+    path = Path(project_path)
+    readme_content = None
+    claude_md_content = None
+
+    # Search for README.md (case-insensitive)
+    for readme_name in ['README.md', 'readme.md', 'README.MD']:
+        readme_path = path / readme_name
+        if readme_path.exists():
+            try:
+                with open(readme_path, 'r', encoding='utf-8') as f:
+                    readme_content = f.read()
+                break
+            except Exception:
+                pass
+
+    # Search for CLAUDE.md (case-insensitive)
+    for claude_name in ['CLAUDE.md', 'claude.md', 'CLAUDE.MD']:
+        claude_path = path / claude_name
+        if claude_path.exists():
+            try:
+                with open(claude_path, 'r', encoding='utf-8') as f:
+                    claude_md_content = f.read()
+                break
+            except Exception:
+                pass
+
+    # Also search in parent directories (up to 3 levels)
+    if readme_content is None or claude_md_content is None:
+        for i in range(1, 4):
+            parent_path = path.parents[min(i, len(path.parents) - 1)]
+            if parent_path == path:
+                break
+
+            if readme_content is None:
+                for readme_name in ['README.md', 'readme.md', 'README.MD']:
+                    readme_path = parent_path / readme_name
+                    if readme_path.exists():
+                        try:
+                            with open(readme_path, 'r', encoding='utf-8') as f:
+                                readme_content = f.read()
+                            break
+                        except Exception:
+                            pass
+
+            if claude_md_content is None:
+                for claude_name in ['CLAUDE.md', 'claude.md', 'CLAUDE.MD']:
+                    claude_path = parent_path / claude_name
+                    if claude_path.exists():
+                        try:
+                            with open(claude_path, 'r', encoding='utf-8') as f:
+                                claude_md_content = f.read()
+                            break
+                        except Exception:
+                            pass
+
+    return readme_content, claude_md_content
+
+
+def _format_file_contents(file_contents) -> str:
+    """Format smart file reader results for LLM consumption."""
+    output = []
+    output.append("# PROJECT FILES (Smart Scan)\n")
+
+    # Group by language
+    by_language = {}
+    for fc in file_contents:
+        lang = fc.language
+        if lang not in by_language:
+            by_language[lang] = []
+        by_language[lang].append(fc)
+
+    for lang, files in sorted(by_language.items()):
+        output.append(f"## {lang} Files ({len(files)} files)\n")
+
+        for fc in files[:50]:  # Limit to prevent overflow
+            output.append(f"### `{fc.file_path}`")
+            output.append(f"**Size:** {fc.file_size // 1024}KB | **Lines:** {fc.line_count}")
+            output.append(f"**Strategy:** {fc.reading_strategy}\n")
+            output.append("```")
+            output.append(fc.content[:2000])  # Truncate very long contents
+            output.append("```\n")
+
+    return "\n".join(output)
 
 
 def generate_template(template_text=None, instructions=""):
@@ -128,30 +225,99 @@ def generate_template(template_text=None, instructions=""):
     return _send_request(prompt)
 
 
-def generate_docs(template_md, code, instructions=""):
-    prompt = f"""
-    You are a professional technical writer.
-
-    Task: Using the provided template structure and codebase, generate comprehensive technical documentation. Follow the template hierarchy strictly.
-
-    TEMPLATE STRUCTURE:
-    {template_md}
-
-    CODEBASE:
-    {code[:15000]} 
-    (Note: Code truncated to 15000 chars to fit limits)
-
-    ADDITIONAL INSTRUCTIONS:
-    {instructions}
-
-    IMPORTANT FORMATTING RULES:
-    1. Use Markdown headers (# for H1, ## for H2).
-    2. Use Markdown tables for lists of components or parameters.
-    3. Do NOT use code blocks for normal text.
-    4. Ensure clarity and conciseness in explanations.
-
-    Output ONLY the documentation content.
+def generate_docs(template_md, project_analysis, instructions=""):
     """
+    Generate documentation using parsed project analysis.
+
+    Args:
+        template_md: Template structure
+        project_analysis: ProjectAnalysis from parser (contains files + metadata + project_path)
+        instructions: Additional user instructions
+
+    Returns:
+        Generated documentation
+    """
+    # Check if project_analysis is a string (legacy code path)
+    if isinstance(project_analysis, str):
+        # Legacy mode - treat as raw code string
+        prompt = f"""
+        You are a professional technical writer.
+
+        Task: Using the provided template structure and codebase, generate comprehensive technical documentation. Follow the template hierarchy strictly.
+
+        TEMPLATE STRUCTURE:
+        {template_md}
+
+        CODEBASE:
+        {project_analysis[:15000]}
+        (Note: Code truncated to 15000 chars to fit limits)
+
+        ADDITIONAL INSTRUCTIONS:
+        {instructions}
+
+        IMPORTANT FORMATTING RULES:
+        1. Use Markdown headers (# for H1, ## for H2).
+        2. Use Markdown tables for lists of components or parameters.
+        3. Do NOT use code blocks for normal text.
+        4. Ensure clarity and conciseness in explanations.
+
+        Output ONLY the documentation content.
+        """
+        return _send_request(prompt)
+
+    # Read project documentation files for additional context
+    # project_analysis.project_path contains the path to the project
+    readme_content, claude_md_content = _read_project_docs(project_analysis.project_path)
+
+    # Format code context based on parser type
+    if project_analysis.parser_type == "tree_sitter_java":
+        # For tree-sitter Java parser (not yet implemented)
+        code_context = "# Java AST parsing not yet implemented\n"
+    else:
+        code_context = _format_file_contents(project_analysis.files)
+
+    # Build project documentation section
+    project_docs_section = ""
+    if readme_content or claude_md_content:
+        project_docs_section = "\n## PROJECT DOCUMENTATION\n"
+        if readme_content:
+            project_docs_section += f"\n### README.md\n{readme_content[:5000]}\n"  # Limit length
+        if claude_md_content:
+            project_docs_section += f"\n### CLAUDE.md (Project Instructions)\n{claude_md_content[:5000]}\n"  # Limit length
+        project_docs_section += "\n"
+
+    # Build prompt
+    prompt = f"""
+You are a professional technical writer.
+
+Task: Using the provided template structure and codebase analysis, generate comprehensive technical documentation.
+
+TEMPLATE STRUCTURE:
+{template_md}
+
+CODEBASE ANALYSIS ({project_analysis.parser_type}):
+Parser: {project_analysis.parser_type}
+Total Files: {project_analysis.total_files}
+Total Lines: {project_analysis.total_lines}
+Metadata: {project_analysis.metadata}
+
+{code_context}
+{project_docs_section}ADDITIONAL INSTRUCTIONS:
+{instructions}
+ 
+IMPORTANT FORMATTING RULES:
+1. Use Markdown headers (# for H1, ## for H2).
+2. Use Markdown tables for lists of components or parameters.
+3. Do NOT use code blocks for normal text.
+4. Ensure clarity and conciseness in explanations.
+
+PROJECT CONTEXT GUIDANCE:
+- If CLAUDE.md is provided above, follow any specific project conventions mentioned
+- If README.md is provided, incorporate any architectural overview or setup instructions
+- Maintain consistency with the project's existing documentation style
+
+Output ONLY the documentation content.
+"""
     return _send_request(prompt)
 
 def chat_with_code(code, user_question, history=""):

@@ -10,6 +10,9 @@ from utils.file_reader import read_codebase, read_dox_pdf
 from utils.doc_writer import save_to_docx
 import ai.doc_gen_llm as ai
 
+# Import tools for project analysis
+from tools import get_parser, ProjectDetector, ToolConfig, ProjectAnalysis
+
 # --- Import Shared GUI Components ---
 from gui.common import (
     BG_COLOR, FG_COLOR, ACCENT_COLOR, ACCENT_HOVER, INPUT_BG, CHAT_BG,
@@ -31,6 +34,7 @@ class DocGeneratorApp():#EJBTabMixin):
         self.project_path = ""
         self.chat_history = ""
         self.template_md = ""
+        self.project_analysis = None  # New: ProjectAnalysis from parser
 
         # Initialize EJB state (from mixin)
         # self._init_ejb_state()
@@ -96,6 +100,16 @@ class DocGeneratorApp():#EJBTabMixin):
         entry.pack(side="left", fill="x", expand=True, ipady=10, padx=(0, 10))
         ttk.Button(sel_frame, text="Browse...", command=self.select_folder).pack(side="right")
 
+        # Add project type detection indicator
+        self.project_type_var = tk.StringVar(value="")
+        self.project_type_label = ttk.Label(
+            sel_frame,
+            textvariable=self.project_type_var,
+            foreground=FG_COLOR,
+            background=BG_COLOR
+        )
+        self.project_type_label.pack(anchor="center", pady=(10, 0))
+
         self.load_btn = ttk.Button(center_frame, text="INITIALIZE PROJECT", command=self.load_project,
                                    style="Green.TButton")
         self.load_btn.pack(pady=30, ipadx=30, ipady=8)
@@ -105,20 +119,136 @@ class DocGeneratorApp():#EJBTabMixin):
 
     def select_folder(self):
         f = filedialog.askdirectory()
-        if f: self.path_var.set(f)
+        if f:
+            self.path_var.set(f)
+            # Trigger project type detection
+            self._detect_and_update_project_type()
+
+    def _detect_and_update_project_type(self):
+        """Detect project type and update UI accordingly."""
+        folder_path = self.path_var.get()
+
+        if not folder_path:
+            return
+
+        # Run detection in background to avoid UI freeze
+        def detect_task():
+            try:
+                detector = ProjectDetector(ToolConfig())
+                result = detector.run(project_path=folder_path)
+
+                # Update UI from main thread
+                if result.success:
+                    project_info = result.data
+                    self.root.after(0, lambda: self._update_project_type_ui(project_info))
+                else:
+                    self.root.after(0, lambda: self._show_detection_error(result.error))
+            except Exception as e:
+                self.root.after(0, lambda: self._show_detection_error(str(e)))
+
+        threading.Thread(target=detect_task, daemon=True).start()
+
+    def _update_project_type_ui(self, project_info):
+        """Update UI based on detected project type."""
+        # Update project type label
+        if project_info.is_java_project:
+            type_text = f"Detected: Java Project ({project_info.build_tool})"
+
+            if project_info.frameworks:
+                frameworks_str = ", ".join(project_info.frameworks)
+                type_text += f"\nFrameworks: {frameworks_str}"
+
+            if project_info.java_version:
+                type_text += f"\nJava Version: {project_info.java_version}"
+
+            self.project_type_var.set(type_text)
+
+        elif project_info.is_python_project:
+            type_text = f"Detected: Python Project ({project_info.build_tool})"
+            if project_info.frameworks:
+                frameworks_str = ", ".join(project_info.frameworks)
+                type_text += f"\nFrameworks: {frameworks_str}"
+            self.project_type_var.set(type_text)
+
+        elif project_info.is_js_project:
+            type_text = f"Detected: JavaScript/TypeScript Project ({project_info.build_tool})"
+            if project_info.frameworks:
+                frameworks_str = ", ".join(project_info.frameworks)
+                type_text += f"\nFrameworks: {frameworks_str}"
+            self.project_type_var.set(type_text)
+
+        else:
+            self.project_type_var.set(f"Detected: General Project")
+
+    def _show_detection_error(self, error):
+        """Show detection error"""
+        self.project_type_var.set(f"Detection Error: {error}")
 
     def load_project(self):
         folder = self.path_var.get()
         if folder:
             self.status_lbl.config(text="Scanning...", foreground=ACCENT_COLOR)
             self.root.update()
-            try:
-                self.loaded_code = read_codebase(folder)
-                self.project_path = folder
-                self.status_lbl.config(text=f"Ready. {len(self.loaded_code)} chars indexed.", foreground="#2da44e")
-                messagebox.showinfo("Success", "Project Loaded!")
-            except Exception as e:
-                self.status_lbl.config(text=f"Error: {e}", foreground="red")
+
+            def load_task():
+                try:
+                    # Detect project type
+                    detector = ProjectDetector(ToolConfig())
+                    detection_result = detector.run(project_path=folder)
+
+                    if not detection_result.success:
+                        raise Exception(detection_result.error)
+
+                    project_info = detection_result.data
+
+                    # Get appropriate parser
+                    parser = get_parser(
+                        project_info=project_info,
+                        enable_deep=False  # Deep parse not yet implemented
+                    )
+
+                    # Parse project
+                    analysis: ProjectAnalysis = parser.parse_project(folder)
+
+                    # Store for later use
+                    self.project_info = project_info
+                    self.project_analysis = analysis
+
+                    # Convert to string for backward compatibility
+                    file_count = len(analysis.files)
+
+                    # Show detected docs status
+                    doc_status = ""
+                    if analysis.has_readme or analysis.has_claude_md:
+                        found_docs = []
+                        if analysis.has_readme:
+                            found_docs.append("README.md")
+                        if analysis.has_claude_md:
+                            found_docs.append("CLAUDE.md")
+                        doc_status = f" | Docs found: {', '.join(found_docs)}"
+
+                    # Update UI from main thread
+                    self.root.after(0, lambda: self._on_project_loaded(file_count, doc_status))
+
+                except Exception as e:
+                    self.root.after(0, lambda: self._on_project_error(str(e)))
+
+            threading.Thread(target=load_task, daemon=True).start()
+
+    def _on_project_loaded(self, file_count, doc_status=""):
+        """Handle successful project load"""
+        self.loaded_code = str(self.project_analysis)  # For backward compatibility
+        self.project_path = self.path_var.get()
+        self.status_lbl.config(
+            text=f"Ready. {file_count} files indexed.{doc_status}",
+            foreground="#2da44e"
+        )
+        messagebox.showinfo("Success", "Project Loaded!")
+
+    def _on_project_error(self, error: str):
+        """Handle project load error"""
+        self.status_lbl.config(text=f"Error: {error}", foreground="red")
+        messagebox.showerror("Error", f"Failed to load project:\n{error}")
 
     # ================= TAB 2: TEMPLATE EDITOR =================
     def _build_tab_template_editor(self):
@@ -301,7 +431,13 @@ class DocGeneratorApp():#EJBTabMixin):
 
             # Generate final documentation from edited template
             self.doc_log.insert(tk.END, "[INFO] Generating final documentation from edited template...\n")
-            final_doc_md = ai.generate_docs(edited_template, self.loaded_code, self.doc_instr.get("1.0", tk.END))
+
+            # Use project_analysis if available (new mode), otherwise use loaded_code (legacy mode)
+            if hasattr(self, 'project_analysis'):
+                final_doc_md = ai.generate_docs(edited_template, self.project_analysis, self.doc_instr.get("1.0", tk.END))
+            else:
+                final_doc_md = ai.generate_docs(edited_template, self.loaded_code, self.doc_instr.get("1.0", tk.END))
+
             self.doc_log.insert(tk.END, "[INFO] Formatting Word Document...\n")
             save_to_docx(final_doc_md, final_docx_filename)
             self.doc_log.insert(tk.END, f"[SUCCESS] Saved to '{final_docx_filename}'\n")
