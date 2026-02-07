@@ -137,16 +137,29 @@ class FileReadTool(BaseTool):
 
         structure_lines = []
         in_block_comment = False
+        in_java_block_comment = False
 
         for i, line in enumerate(lines, 1):
             stripped = line.strip()
 
-            # Track block comments
+            # Track Python-style block comments (""", ''')
             if '"""' in stripped or "'''" in stripped:
                 in_block_comment = not in_block_comment
                 continue
 
-            if in_block_comment:
+            # Track Java/C-style block comments (/* ... */)
+            if '/*' in stripped:
+                in_java_block_comment = True
+            if '*/' in stripped:
+                in_java_block_comment = False
+                continue
+
+            if in_block_comment or in_java_block_comment:
+                continue
+
+            # Keep single-line comments (javadoc, etc)
+            if stripped.startswith(('/**', '/*!', '/*', '*', '//')):
+                structure_lines.append(f"{i:4d}: {line}")
                 continue
 
             # Keep imports
@@ -159,7 +172,11 @@ class FileReadTool(BaseTool):
                 'interface ', 'type ', 'struct ', 'enum ',
                 'public ', 'private ', 'protected ', '@Override',
                 '@Controller', '@Service', '@Repository', '@Component',
-                '@RestController', '@Entity', '@Configuration'
+                '@RestController', '@Entity', '@Configuration',
+                '@Slf4j', '@Data', '@Builder', '@NoArgsConstructor',
+                '@AllArgsConstructor', '@Getter', '@Setter', '@Value',
+                'abstract ', 'static ', 'final ', 'synchronized ',
+                '@Configuration', '@Bean', '@Autowired'
             ]):
                 structure_lines.append(f"{i:4d}: {line}")
 

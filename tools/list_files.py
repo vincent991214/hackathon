@@ -15,6 +15,7 @@ from .config import ToolConfig
 
 class ListFilesTool(BaseTool):
     """Tool to list files in a directory with filtering."""
+    """Not in use"""
 
     def run(self, directory: str, group_by_dir: bool = True) -> ToolResult:
         """

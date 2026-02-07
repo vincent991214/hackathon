@@ -13,6 +13,7 @@ from .base import BaseTool, ToolResult
 from .project_detector import ProjectInfo
 from .file_reader import FileReadTool
 from .config import ToolConfig
+from utils.codebase_rglob import safe_rglob
 
 
 @dataclass
@@ -80,51 +81,15 @@ class SmartFileParser(CodeParser):
         total_lines = 0
         path = Path(project_path)
 
-        # Supported code file extensions
-        code_extensions = {
-            '.py': 'Python',
-            '.js': 'JavaScript',
-            '.ts': 'TypeScript',
-            '.java': 'Java',
-            '.cpp': 'C++',
-            '.c': 'C',
-            '.h': 'C/C++ Header',
-            '.cc': 'C++',
-            '.hpp': 'C++ Header',
-            '.cs': 'C#',
-            '.go': 'Go',
-            '.rs': 'Rust',
-            '.rb': 'Ruby',
-            '.php': 'PHP',
-            '.html': 'HTML',
-            '.css': 'CSS',
-            '.scss': 'SCSS',
-            '.sass': 'SASS',
-            '.less': 'LESS',
-            '.xml': 'XML',
-            '.json': 'JSON',
-            '.yaml': 'YAML',
-            '.yml': 'YAML',
-            '.sql': 'SQL',
-            '.sh': 'Shell',
-            '.bat': 'Batch',
-            '.md': 'Markdown',
-            '.jsx': 'React JSX',
-            '.tsx': 'React TSX',
-            '.vue': 'Vue',
-        }
-
-        for file_path in path.rglob('*'):
+        for file_path in safe_rglob(path):
             if file_path.is_file():
-                # Skip ignored directories
-                if any(ignored in str(file_path) for ignored in self.config.IGNORED_DIRS):
-                    continue
 
                 # Check if it's a code file
                 suffix = file_path.suffix.lower()
-                if suffix in code_extensions:
+                if suffix in self.config.CODE_EXTENSIONS:
                     # Skip ignored extensions
                     if any(str(file_path).endswith(ext) for ext in self.config.IGNORED_EXTENSIONS):
+                        print("ignored extensions")
                         continue
 
                     try:
@@ -136,7 +101,7 @@ class SmartFileParser(CodeParser):
                             file_content = FileContent(
                                 file_path=str(file_path),
                                 content=content,
-                                language=code_extensions[suffix],
+                                language=self.config.CODE_EXTENSIONS[suffix],
                                 line_count=content.count('\n') + 1,
                                 file_size=file_path.stat().st_size,
                                 reading_strategy="smart"
@@ -155,7 +120,7 @@ class SmartFileParser(CodeParser):
             files=files,
             metadata={
                 "strategy": "smart_file_reading",
-                "extensions_supported": list(code_extensions.keys())
+                "extensions_supported": list(self.config.CODE_EXTENSIONS.keys())
             },
             total_files=len(files),
             total_lines=total_lines,
