@@ -2,5 +2,7 @@ python-docx
 pypdf
 openai==0.28
 python-dotenv
-chromadb
-google-generativeai
+
+# Code parsing dependencies
+tree-sitter>=0.21.0
+tree-sitter-languages>=1.10.0
