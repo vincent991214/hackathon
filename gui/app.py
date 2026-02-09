@@ -6,12 +6,15 @@ from datetime import datetime
 
 # --- Import Logic ---
 # Ensure you have these files in your project structure
+from utils.parser_factory import ProjectAnalysis
+from utils.project_detector import ProjectDetector
+from utils.parser_factory import get_parser
 import utils.read_dox_pdf as read_dox_pdf
 from utils.doc_writer import save_to_docx
 import ai.doc_gen_llm as ai
 
 # Import tools for project analysis
-from tools import get_parser, ProjectDetector, ToolConfig, ProjectAnalysis
+from tools import ToolConfig
 
 # --- Import Shared GUI Components ---
 from gui.common import (

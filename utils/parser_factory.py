@@ -9,10 +9,10 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Dict
 from dataclasses import dataclass
 from pathlib import Path
-from ..tools.base import BaseTool, ToolResult
+from tools.base import BaseTool, ToolResult
 from .project_detector import ProjectInfo
-from ..tools.file_reader import FileReadTool
-from ..tools.config import ToolConfig
+from tools.file_reader import FileReadTool
+from tools.config import ToolConfig
 from utils.codebase_rglob import safe_rglob
 
 

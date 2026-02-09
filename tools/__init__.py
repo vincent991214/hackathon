@@ -1,12 +1,3 @@
-"""
-Code parsing tools for DevMate AI.
-
-This module provides:
-- Smart file reading with adaptive strategies
-- Tree-sitter based Java parsing
-- Project type detection
-- Parser factory for automatic selection
-"""
 
 from .base import BaseTool, ToolResult
 from .config import ToolConfig
