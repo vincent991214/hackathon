@@ -6,7 +6,7 @@ from datetime import datetime
 
 # --- Import Logic ---
 # Ensure you have these files in your project structure
-from utils.file_reader import read_codebase, read_dox_pdf
+import utils.read_dox_pdf as read_dox_pdf
 from utils.doc_writer import save_to_docx
 import ai.doc_gen_llm as ai
 

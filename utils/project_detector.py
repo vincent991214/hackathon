@@ -9,8 +9,8 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Set
-from .base import BaseTool, ToolResult
-from .config import ToolConfig
+from ..tools.base import BaseTool, ToolResult
+from ..tools.config import ToolConfig
 
 
 @dataclass

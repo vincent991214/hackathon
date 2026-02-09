@@ -67,6 +67,33 @@ DEFAULT_CODE_EXTENSIONS = {
             '.vue': 'Vue',
 }
 
+DEFAULT_TREE_SITTER_MAP = {
+        '.cpp': 'cpp',
+        '.cc': 'cpp',
+        '.cxx': 'cpp',
+        '.c': 'c',
+        '.h': 'cpp', 
+        '.hpp': 'cpp',
+        '.java': 'java',
+        '.py': 'python',
+        '.go': 'go',
+        '.js': 'javascript',
+        '.jsx': 'javascript', 
+        '.ts': 'typescript',
+        '.tsx': 'tsx',        
+        '.vue': 'vue',        
+        '.html': 'html',
+        '.css': 'css',
+        '.scss': 'scss',
+        '.sass': 'sass',
+        '.less': 'less',
+        '.json': 'json',
+        '.md': 'markdown',
+        '.yml': 'yaml',
+        '.yaml': 'yaml',
+        '.xml': 'xml',
+    }
+
 @dataclass
 class ToolConfig:
     """Configuration for code parsing tools."""
@@ -95,3 +122,5 @@ class ToolConfig:
     IGNORED_EXTENSIONS: set[str] = field(default_factory=lambda: DEFAULT_IGNORED_EXTENSIONS)
 
     CODE_EXTENSIONS: dict[str,str] = field(default_factory=lambda: DEFAULT_CODE_EXTENSIONS)
+
+    TREE_SITTER_MAP: dict[str,str] = field(default_factory=lambda: DEFAULT_TREE_SITTER_MAP)
