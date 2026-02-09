@@ -9,10 +9,10 @@ from abc import ABC, abstractmethod
 from typing import List, Any, Dict
 from dataclasses import dataclass
 from pathlib import Path
-from tools.base import BaseTool, ToolResult
+from .base import BaseTool, ToolResult
 from .project_detector import ProjectInfo
-from tools.file_reader import FileReadTool
-from tools.config import ToolConfig
+from .file_reader import FileReadTool
+from .tool_config import ToolConfig
 from utils.codebase_rglob import safe_rglob
 
 
@@ -87,10 +87,6 @@ class SmartFileParser(CodeParser):
                 # Check if it's a code file
                 suffix = file_path.suffix.lower()
                 if suffix in self.config.CODE_EXTENSIONS:
-                    # Skip ignored extensions
-                    # if any(str(file_path).endswith(ext) for ext in self.config.IGNORED_EXTENSIONS):
-                    #     print("ignored extensions")
-                    #     continue
 
                     try:
                         # Read file
@@ -147,7 +143,7 @@ def get_parser(project_info: ProjectInfo, enable_deep: bool, config: ToolConfig 
         Appropriate CodeParser instance
     """
     if config is None:
-        from ..tools.config import ToolConfig
+        from .tool_config import ToolConfig
         config = ToolConfig()
 
     # Decision tree:

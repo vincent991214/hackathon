@@ -9,12 +9,12 @@ from datetime import datetime
 from utils.parser_factory import ProjectAnalysis
 from utils.project_detector import ProjectDetector
 from utils.parser_factory import get_parser
-import utils.read_dox_pdf as read_dox_pdf
+from utils.read_dox_pdf import read_dox_pdf
 from utils.doc_writer import save_to_docx
 import ai.doc_gen_llm as ai
 
 # Import tools for project analysis
-from tools import ToolConfig
+from utils import ToolConfig
 
 # --- Import Shared GUI Components ---
 from gui.common import (
@@ -147,7 +147,7 @@ class DocGeneratorApp():#EJBTabMixin):
                 else:
                     self.root.after(0, lambda: self._show_detection_error(result.error))
             except Exception as e:
-                self.root.after(0, lambda: self._show_detection_error(str(e)))
+                self.root.after(0, lambda error_msg=str(e): self._show_detection_error(error_msg))
 
         threading.Thread(target=detect_task, daemon=True).start()
 
@@ -234,7 +234,7 @@ class DocGeneratorApp():#EJBTabMixin):
                     self.root.after(0, lambda: self._on_project_loaded(file_count, doc_status))
 
                 except Exception as e:
-                    self.root.after(0, lambda: self._on_project_error(str(e)))
+                    self.root.after(0, lambda error_msg=str(e): self._on_project_error(error_msg))
 
             threading.Thread(target=load_task, daemon=True).start()
 

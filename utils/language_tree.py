@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from tree_sitter import Language, Parser
 from tree_sitter_languages import get_parser # 这个库简化了语言解析器的获取
-from tools.config import ToolConfig
+from .tool_config import ToolConfig
 from utils.codebase_rglob import safe_rglob
 
 TREE_SITTER_LANGUAGE_MAP = ToolConfig().TREE_SITTER_MAP

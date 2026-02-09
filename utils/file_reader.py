@@ -8,7 +8,7 @@ Provides multiple reading modes: full, smart, structure_only, and more.
 from typing import Optional
 from pathlib import Path
 from .base import BaseTool, ToolResult
-from .config import ToolConfig
+from .tool_config import ToolConfig
 
 
 class FileReadTool(BaseTool):

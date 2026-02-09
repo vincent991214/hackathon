@@ -7,7 +7,7 @@ Imports tool configuration and API settings from environment variables.
 
 import os
 from dotenv import load_dotenv
-from tools.config import ToolConfig
+from utils.tool_config import ToolConfig
 
 # Load environment variables
 load_dotenv()

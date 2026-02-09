@@ -10,7 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Dict
 from .base import BaseTool, ToolResult
-from .config import ToolConfig
+from .tool_config import ToolConfig
 
 
 class ListFilesTool(BaseTool):

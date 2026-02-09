@@ -276,7 +276,6 @@ def generate_docs(template_md, project_analysis, instructions=""):
     else:
         code_context = _format_file_contents(project_analysis.files)
     
-    print(code_context)
 
     # Build project documentation section
     project_docs_section = ""

@@ -1,5 +1,5 @@
 from pathlib import Path
-from tools.config import ToolConfig
+from .tool_config import ToolConfig
 
 IGNORED_DIRS = ToolConfig().IGNORED_DIRS
 IGNORED_EXTENSIONS = ToolConfig().IGNORED_EXTENSIONS
