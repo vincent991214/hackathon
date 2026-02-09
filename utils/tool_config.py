@@ -50,22 +50,49 @@ DEFAULT_CODE_EXTENSIONS = {
     '.go': 'Go',
     '.rs': 'Rust',
     '.rb': 'Ruby',
-            '.php': 'PHP',
-            '.html': 'HTML',
-            '.css': 'CSS',
-            '.scss': 'SCSS',
-            '.sass': 'SASS',
-            '.less': 'LESS',
-            '.xml': 'XML',
-            '.json': 'JSON',
-            '.sql': 'SQL',
-            '.sh': 'Shell',
-            '.bat': 'Batch',
-            '.md': 'Markdown',
-            '.jsx': 'React JSX',
-            '.tsx': 'React TSX',
-            '.vue': 'Vue',
+        '.php': 'PHP',
+        '.html': 'HTML',
+        '.css': 'CSS',
+        '.scss': 'SCSS',
+        '.sass': 'SASS',
+        '.less': 'LESS',
+        '.xml': 'XML',
+        '.json': 'JSON',
+        '.sql': 'SQL',
+        '.sh': 'Shell',
+        '.bat': 'Batch',
+        '.md': 'Markdown',
+        '.jsx': 'React JSX',
+        '.tsx': 'React TSX',
+        '.vue': 'Vue',
 }
+
+DEFAULT_TREE_SITTER_MAP = {
+        '.cpp': 'cpp',
+        '.cc': 'cpp',
+        '.cxx': 'cpp',
+        '.c': 'c',
+        '.h': 'cpp',
+        '.hpp': 'cpp',
+        '.java': 'java',
+        '.py': 'python',
+        '.go': 'go',
+        '.js': 'javascript',
+        '.jsx': 'javascript',
+        '.ts': 'typescript',
+        '.tsx': 'tsx',
+        '.vue': 'vue',
+        '.html': 'html',
+        '.css': 'css',
+        '.scss': 'scss',
+        '.sass': 'sass',
+        '.less': 'less',
+        '.json': 'json',
+        '.md': 'markdown',
+        '.yml': 'yaml',
+        '.yaml': 'yaml',
+        '.xml': 'xml',
+    }
 
 @dataclass
 class ToolConfig:
@@ -95,3 +122,5 @@ class ToolConfig:
     IGNORED_EXTENSIONS: set[str] = field(default_factory=lambda: DEFAULT_IGNORED_EXTENSIONS)
 
     CODE_EXTENSIONS: dict[str,str] = field(default_factory=lambda: DEFAULT_CODE_EXTENSIONS)
+
+    TREE_SITTER_MAP: dict[str,str] = field(default_factory=lambda: DEFAULT_TREE_SITTER_MAP)

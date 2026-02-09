@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(npx skills add:*)",
+      "Bash(pip install:*)",
+      "Bash(dir:*)",
+      "Bash(cmd /c \"dir /b C:\\\\Users\\\\zliu71\\\\Documents\\\\hackathon\\\\*.pptx\")"
     ]
   }
 }

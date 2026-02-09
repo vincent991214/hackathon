@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Set
 from .base import BaseTool, ToolResult
-from .config import ToolConfig
+from .tool_config import ToolConfig
 
 
 @dataclass
